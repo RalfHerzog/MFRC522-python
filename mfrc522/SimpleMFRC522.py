@@ -1,4 +1,4 @@
-# Code by Simon Monk https://github.com/simonmonk/
+# Adapted from code by Simon Monk https://github.com/simonmonk/
 
 from . import MFRC522
 
@@ -15,17 +15,17 @@ class SimpleMFRC522:
 
     def read(self):
         while True:
-            uid, text = self.read_no_block()
-            if uid:
+            hid, text = self.read_no_block()
+            if hid:
                 break
-        return uid, text
+        return hid, text
 
     def read_id(self):
         while True:
-            uid = self.read_id_no_block()
-            if uid:
+            hid = self.read_id_no_block()
+            if hid:
                 break
-        return uid
+        return hid
 
     def read_id_no_block(self):
         (status, TagType) = self.READER.MFRC522_Request(self.READER.PICC_REQIDL)
@@ -59,10 +59,10 @@ class SimpleMFRC522:
 
     def write(self, text):
         while True:
-            uid, text_in = self.write_no_block(text)
-            if uid:
+            hid, text_in = self.write_no_block(text)
+            if hid:
                 break
-        return uid, text_in
+        return hid, text_in
 
     def write_no_block(self, text):
         (status, TagType) = self.READER.MFRC522_Request(self.READER.PICC_REQIDL)
