@@ -18,15 +18,13 @@ class SimpleMFRC522:
         while True:
             hid, text = self.read_no_block()
             if hid:
-                break
-        return hid, text
+                return hid, text
 
     def read_id(self):
         while True:
             hid = self.read_id_no_block()
             if hid:
-                break
-        return hid
+                return hid
 
     def read_id_no_block(self):
         (status, TagType) = self.reader.MFRC522_Request(self.reader.PICC_REQIDL)
@@ -63,8 +61,7 @@ class SimpleMFRC522:
         while True:
             hid, text_in = self.write_no_block(text)
             if hid:
-                break
-        return hid, text_in
+                return hid, text_in
 
     def write_no_block(self, text):
         (status, TagType) = self.reader.MFRC522_Request(self.reader.PICC_REQIDL)
@@ -98,7 +95,7 @@ class SimpleMFRC522:
         while True:
             hid, data = self.dump_no_block()
             if hid:
-                return data
+                return hid, data
 
     @staticmethod
     def uid_to_hex(uid):
