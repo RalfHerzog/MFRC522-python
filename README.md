@@ -22,7 +22,7 @@ try:
     while True:
         print("Hold a tag near the reader")
         uid, text = reader.read()
-        print("ID: {}\nText: {}".format(uid, text))
+        print("UID: {}\nText: {}".format(uid, text))
         sleep(5)
 finally:
     GPIO.cleanup()
