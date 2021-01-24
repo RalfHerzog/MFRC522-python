@@ -285,7 +285,7 @@ class MFRC522:
 
         if status == self.MI_OK:
             if len(backData) == 5:
-                serNumCheck = reduce(xor, backData[:4])
+                serNumCheck = self.calculate_bcc(backData[:4])
                 if serNumCheck != backData[4]:
                     status = self.MI_ERR
             else:
@@ -360,8 +360,8 @@ class MFRC522:
         if len(backData) == 16:
             self.logger.debug("Sector " + str(blockAddr) + " " + str(backData))
             return backData
-        else:
-            return None
+
+        raise MFRC522Exception("No data read.")
 
     def MFRC522_Write(self, blockAddr, writeData):
         buff = [self.PICC_WRITE, blockAddr]
@@ -482,20 +482,30 @@ class MFRC522:
         )
 
     @staticmethod
-    def get_block_value(block: bytes):
-        if not MFRC522.check_value_block(block):
+    def calculate_bcc(data):
+        return reduce(xor, data[:4])
+
+    @classmethod
+    def get_block_value(cls, block: bytes):
+        if not cls.check_value_block(block):
             raise MFRC522Exception(f"{block.hex()} is not a valid value block")
 
         return int.from_bytes(block[:4], "little")
 
     def MFRC522_DumpClassic1K(self, key, uid):
+        data = []
         for i in range(64):
             status = self.MFRC522_Auth(self.PICC_AUTHENT1A, i, key, uid)
             # Check if authenticated
             if status == self.MI_OK:
-                self.MFRC522_Read(i)
+                try:
+                    data += self.MFRC522_Read(i)
+                except MFRC522Exception:
+                    pass
             else:
                 self.logger.error("Authentication error")
+
+        return data
 
     def MFRC522_Init(self):
         self.MFRC522_Reset()
