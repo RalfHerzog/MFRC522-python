@@ -263,13 +263,9 @@ class MFRC522:
         return (status, backData, backLen)
 
     def MFRC522_Request(self, reqMode):
-        status = None
-        backBits = None
-        TagType = []
-
         self.Write_MFRC522(self.BitFramingReg, 0x07)
 
-        TagType.append(reqMode)
+        TagType = [reqMode]
         (status, backData, backBits) = self.MFRC522_ToCard(self.PCD_TRANSCEIVE, TagType)
 
         if (status != self.MI_OK) | (backBits != 0x10):
