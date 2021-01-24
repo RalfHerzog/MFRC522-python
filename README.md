@@ -6,7 +6,7 @@ This code was published in relation to a [blog post](https://pimylifeup.com/rasp
 
 ## Installation
 
-Until the package is on PyPi, clone this repository and run `python setup.py install` in the top level directory.
+Until the package is on PyPi, clone this repository and run `pip install .` in the top level directory.
 
 ## Example Code
 
@@ -21,10 +21,9 @@ reader = SimpleMFRC522()
 try:
     while True:
         print("Hold a tag near the reader")
-        id, text = reader.read()
-        print("ID: %s\nText: %s" % (id,text))
+        uid, text = reader.read()
+        print("ID: {}\nText: {}".format(uid, text))
         sleep(5)
-except KeyboardInterrupt:
+finally:
     GPIO.cleanup()
-    raise
 ```
