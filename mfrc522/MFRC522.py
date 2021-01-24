@@ -405,9 +405,9 @@ class MFRC522:
                 or not (backLen == 4)
                 or not ((backData[0] & 0x0F) == 0x0A)
             ):
-                self.logger.error("Error while writing")
+                self.logger.error(f"Error while writing block {block_addr}")
             if status == self.MI_OK:
-                self.logger.debug("Data written")
+                self.logger.debug(f"Data written to block {block_addr}")
 
     def mfrc522_decrement(self, block_addr, delta):
         buff = [self.PICC_DECREMENT, block_addr]
