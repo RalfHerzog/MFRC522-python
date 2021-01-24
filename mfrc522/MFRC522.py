@@ -21,6 +21,8 @@
 #    along with MFRC522-Python.  If not, see <http://www.gnu.org/licenses/>.
 #
 import logging
+from functools import reduce
+from operator import xor
 
 import RPi.GPIO as GPIO
 import spidev
@@ -275,9 +277,6 @@ class MFRC522:
         return (status, backBits)
 
     def MFRC522_Anticoll(self):
-        backData = []
-        serNumCheck = 0
-
         serNum = []
 
         self.Write_MFRC522(self.BitFramingReg, 0x00)
@@ -288,10 +287,8 @@ class MFRC522:
         (status, backData, backBits) = self.MFRC522_ToCard(self.PCD_TRANSCEIVE, serNum)
 
         if status == self.MI_OK:
-            i = 0
             if len(backData) == 5:
-                for i in range(4):
-                    serNumCheck = serNumCheck ^ backData[i]
+                serNumCheck = reduce(xor, backData[:4])
                 if serNumCheck != backData[4]:
                     status = self.MI_ERR
             else:
@@ -319,10 +316,9 @@ class MFRC522:
         return pOutData
 
     def MFRC522_SelectTag(self, serNum):
+        assert len(serNum) == 5
         buf = [self.PICC_SElECTTAG, 0x70]
-
-        for i in range(5):
-            buf.append(serNum[i])
+        buf += serNum
 
         (status, backData, backLen) = self.MFRC522_TranseiveHelper(buf)
 
@@ -333,21 +329,15 @@ class MFRC522:
             return 0
 
     def MFRC522_Auth(self, authMode, BlockAddr, Sectorkey, serNum):
-        buff = []
-
         # First byte should be the authMode (A or B)
-        buff.append(authMode)
-
         # Second byte is the trailerBlock (usually 7)
-        buff.append(BlockAddr)
+        buff = [authMode, BlockAddr]
 
         # Now we need to append the authKey which usually is 6 bytes of 0xFF
-        for i in range(len(Sectorkey)):
-            buff.append(Sectorkey[i])
+        buff += Sectorkey
 
         # Next we append the first 4 bytes of the UID
-        for i in range(4):
-            buff.append(serNum[i])
+        buff += serNum[:4]
 
         # Now we start the authentication itself
         (status, backData, backLen) = self.MFRC522_ToCard(self.PCD_AUTHENT, buff)
@@ -418,7 +408,7 @@ class MFRC522:
             "%s backdata &0x0F == 0x0A %s" % (backLen, backData[0] & 0x0F)
         )
         if status == self.MI_OK:
-            buf = list(delta.to_bytes(4, "little"))
+            buf = self.value_to_bytes(delta)
             (status, backData, backLen) = self.MFRC522_TranseiveHelper(buf)
             if (
                 not (status == self.MI_OK or status == self.MI_TIMEOUT)
@@ -443,7 +433,7 @@ class MFRC522:
             "%s backdata &0x0F == 0x0A %s" % (backLen, backData[0] & 0x0F)
         )
         if status == self.MI_OK:
-            buf = list(delta.to_bytes(4, "little"))
+            buf = self.value_to_bytes(delta)
             (status, backData, backLen) = self.MFRC522_TranseiveHelper(buf)
             if (
                 not (status == self.MI_OK or status == self.MI_TIMEOUT)
@@ -468,6 +458,10 @@ class MFRC522:
         crc = self.CalculateCRC(buff)
         buff += crc
         return self.MFRC522_ToCard(self.PCD_TRANSCEIVE, buff)
+
+    @staticmethod
+    def value_to_bytes(value):
+        return list(value.to_bytes(4, "little"))
 
     def MFRC522_DumpClassic1K(self, key, uid):
         for i in range(64):
