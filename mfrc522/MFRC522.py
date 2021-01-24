@@ -361,7 +361,7 @@ class MFRC522:
     def mfrc522_stop_crypto1(self):
         self.clear_bit_mask(self.Status2Reg, 0x08)
 
-    def MFRC522_Read(self, block_addr):
+    def mfrc522_read(self, block_addr):
         buff = [self.PICC_READ, block_addr]
         (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
         if not (status == self.MI_OK):
@@ -517,7 +517,7 @@ class MFRC522:
             # Check if authenticated
             if status == self.MI_OK:
                 try:
-                    data += self.MFRC522_Read(i)
+                    data += self.mfrc522_read(i)
                 except MFRC522Exception:
                     pass
             else:

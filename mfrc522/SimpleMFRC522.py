@@ -55,7 +55,7 @@ class SimpleMFRC522:
         if status == self.reader.MI_OK:
             for block_num in self.BLOCK_ADDRS:
                 try:
-                    data += self.reader.MFRC522_Read(block_num)
+                    data += self.reader.mfrc522_read(block_num)
                 except MFRC522Exception:
                     pass
             if data:
