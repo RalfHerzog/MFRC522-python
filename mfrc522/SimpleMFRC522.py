@@ -89,6 +89,7 @@ class SimpleMFRC522:
         self.reader.MFRC522_SelectTag(uid)
         data = self.reader.MFRC522_DumpClassic1K(self.KEY, uid)
         self.reader.MFRC522_StopCrypto1()
+        assert len(data) <= 1024
         return self.uid_to_hex(uid), data
 
     def dump(self):
