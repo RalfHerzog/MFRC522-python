@@ -6,7 +6,7 @@ This code was published in relation to a [blog post](https://pimylifeup.com/rasp
 
 ## Installation
 
-Until the package is on PyPi, clone this repository and run `pip install .` in the top level directory.
+Clone this repository and run `pip install .` in the top level directory.
 
 ## Example Code
 
@@ -27,3 +27,9 @@ try:
 finally:
     GPIO.cleanup()
 ```
+
+## Additional Resources
+
+MIFARE Classic EV1 1K - Mainstream contactless smart cardIC for fast and easy solution development
+
+https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
