@@ -364,6 +364,9 @@ class MFRC522:
         raise MFRC522Exception("No data read.")
 
     def MFRC522_Write(self, blockAddr, writeData):
+        if len(writeData) != 16:
+            raise MFRC522Exception("16 bytes needed")
+
         buff = [self.PICC_WRITE, blockAddr]
         (status, backData, backLen) = self.MFRC522_TranseiveHelper(buff)
         if (
@@ -378,8 +381,7 @@ class MFRC522:
         )
         if status == self.MI_OK:
             buf = []
-            for i in range(16):
-                buf.append(writeData[i])
+            buf.extend(writeData)
 
             (status, backData, backLen) = self.MFRC522_TranseiveHelper(buf)
             if (
