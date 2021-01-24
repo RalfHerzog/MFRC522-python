@@ -26,6 +26,7 @@ from operator import xor
 
 import RPi.GPIO as GPIO
 import spidev
+from .exceptions import MFRC522Exception
 
 
 class MFRC522:
@@ -483,6 +484,13 @@ class MFRC522:
             + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
             * 2
         )
+
+    @staticmethod
+    def get_block_value(block: bytes):
+        if not MFRC522.check_value_block(block):
+            raise MFRC522Exception(f"{block.hex()} is not a valid value block")
+
+        return int.from_bytes(block[:4], "little")
 
     def MFRC522_DumpClassic1K(self, key, uid):
         for i in range(64):

@@ -16,3 +16,6 @@ class TestMFRC522(unittest.TestCase):
 
     def test_self_format_then_check(self):
         self.assertTrue(MFRC522.check_value_block(MFRC522.format_value_block()))
+
+    def test_block_value(self):
+        self.assertEqual(MFRC522.get_block_value(VALUE_BLOCK), 5)
