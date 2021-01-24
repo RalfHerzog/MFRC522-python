@@ -14,6 +14,12 @@ class SimpleMFRC522:
         if key is not None:
             self.KEY = key
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.reader.close_mfrc522()
+
     def read(self):
         while True:
             hid, text = self.read_no_block()
