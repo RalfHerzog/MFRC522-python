@@ -510,10 +510,11 @@ class MFRC522:
 
         return int.from_bytes(block[:4], "little")
 
-    def mfrc522_dump_classic1k(self, key, uid):
+    def mfrc522_dump_classic1k(self, keys, uid):
         data = []
         for i in range(64):
-            status = self.mfrc522_auth(self.PICC_AUTHENT1A, i, key, uid)
+            key_idx = i // 4
+            status = self.mfrc522_auth(self.PICC_AUTHENT1A, i, keys[key_idx], uid)
             # Check if authenticated
             if status == self.MI_OK:
                 try:
@@ -521,6 +522,13 @@ class MFRC522:
                 except MFRC522Exception:
                     pass
             else:
+                status = self.mfrc522_auth(self.PICC_AUTHENT1B, i, keys[key_idx + 1], uid)
+                # Check if authenticated
+                if status == self.MI_OK:
+                    try:
+                        data += self.mfrc522_read(i)
+                    except MFRC522Exception:
+                        pass
                 self.logger.error("Authentication error")
 
         return data

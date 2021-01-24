@@ -93,7 +93,7 @@ class SimpleMFRC522:
         if status != self.reader.MI_OK:
             return None, None
         self.reader.mfrc522_select_tag(uid)
-        data = self.reader.mfrc522_dump_classic1k(self.KEY, uid)
+        data = self.reader.mfrc522_dump_classic1k([self.KEY] * 32, uid)
         self.reader.mfrc522_stop_crypto1()
         assert len(data) <= 1024
         return self.uid_to_hex(uid), data
