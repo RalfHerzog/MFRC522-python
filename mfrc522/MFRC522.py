@@ -24,8 +24,20 @@ import logging
 from functools import reduce
 from operator import xor
 
-import RPi.GPIO as GPIO
-import spidev
+try:
+    import RPi.GPIO as GPIO
+    import spidev
+except ImportError:
+    import sys
+
+    if sys.platform != "linux":
+        import unittest.mock as mock
+
+        GPIO = mock.Mock()
+        spidev = mock.Mock()
+    else:
+        raise
+
 from .exceptions import MFRC522Exception
 
 
@@ -522,7 +534,9 @@ class MFRC522:
                 except MFRC522Exception:
                     pass
             else:
-                status = self.mfrc522_auth(self.PICC_AUTHENT1B, i, keys[key_idx + 1], uid)
+                status = self.mfrc522_auth(
+                    self.PICC_AUTHENT1B, i, keys[key_idx + 1], uid
+                )
                 # Check if authenticated
                 if status == self.MI_OK:
                     try:
