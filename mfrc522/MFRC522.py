@@ -486,42 +486,6 @@ class MFRC522:
         buff += crc
         return self.mfrc522_to_card(self.PCD_TRANSCEIVE, buff)
 
-    @staticmethod
-    def value_to_bytes(value):
-        return list(value.to_bytes(4, "little"))
-
-    @staticmethod
-    def check_value_block(block: bytes):
-        return (
-            int.from_bytes(block[0:4], "little")
-            == ~int.from_bytes(block[4:8], "little") & 0xFFFFFFFF
-            == int.from_bytes(block[8:12], "little")
-        ) and (block[12] == block[14] == ~block[13] & 0xFF == ~block[15] & 0xFF)
-
-    @staticmethod
-    def format_value_block(value: int = 0, address: int = 0):
-        value &= 0xFFFFFFFF
-        address &= 0xFF
-
-        return (
-            value.to_bytes(4, "little")
-            + (~value & 0xFFFFFFFF).to_bytes(4, "little")
-            + value.to_bytes(4, "little")
-            + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
-            * 2
-        )
-
-    @staticmethod
-    def calculate_bcc(data):
-        return reduce(xor, data[:4])
-
-    @classmethod
-    def get_block_value(cls, block: bytes):
-        if not cls.check_value_block(block):
-            raise MFRC522Exception(f"{block.hex()} is not a valid value block")
-
-        return int.from_bytes(block[:4], "little")
-
     def mfrc522_dump_classic1k(self, keys, uid):
         data = []
         for i in range(64):
@@ -558,3 +522,39 @@ class MFRC522:
         self.write_mfrc522(self.TxAutoReg, 0x40)
         self.write_mfrc522(self.ModeReg, 0x3D)
         self.antenna_on()
+
+    @staticmethod
+    def value_to_bytes(value):
+        return list(value.to_bytes(4, "little"))
+
+    @staticmethod
+    def check_value_block(block: bytes):
+        return (
+                       int.from_bytes(block[0:4], "little")
+                       == ~int.from_bytes(block[4:8], "little") & 0xFFFFFFFF
+                       == int.from_bytes(block[8:12], "little")
+               ) and (block[12] == block[14] == ~block[13] & 0xFF == ~block[15] & 0xFF)
+
+    @staticmethod
+    def format_value_block(value: int = 0, address: int = 0):
+        value &= 0xFFFFFFFF
+        address &= 0xFF
+
+        return (
+                value.to_bytes(4, "little")
+                + (~value & 0xFFFFFFFF).to_bytes(4, "little")
+                + value.to_bytes(4, "little")
+                + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
+                * 2
+        )
+
+    @staticmethod
+    def calculate_bcc(data):
+        return reduce(xor, data[:4])
+
+    @classmethod
+    def get_block_value(cls, block: bytes):
+        if not cls.check_value_block(block):
+            raise MFRC522Exception(f"{block.hex()} is not a valid value block")
+
+        return int.from_bytes(block[:4], "little")
