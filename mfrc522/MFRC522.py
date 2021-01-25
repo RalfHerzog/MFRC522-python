@@ -65,6 +65,8 @@ class MFRC522:
     PICC_RESTORE = 0xC2
     PICC_TRANSFER = 0xB0
     PICC_HALT = 0x50
+    PICC_UNLOCK1 = 0x43
+    PICC_UNLOCK2 = 0x40
 
     MI_OK = 0
     MI_NOTAGERR = 1
@@ -530,10 +532,10 @@ class MFRC522:
     @staticmethod
     def check_value_block(block: bytes):
         return (
-                       int.from_bytes(block[0:4], "little")
-                       == ~int.from_bytes(block[4:8], "little") & 0xFFFFFFFF
-                       == int.from_bytes(block[8:12], "little")
-               ) and (block[12] == block[14] == ~block[13] & 0xFF == ~block[15] & 0xFF)
+            int.from_bytes(block[0:4], "little")
+            == ~int.from_bytes(block[4:8], "little") & 0xFFFFFFFF
+            == int.from_bytes(block[8:12], "little")
+        ) and (block[12] == block[14] == ~block[13] & 0xFF == ~block[15] & 0xFF)
 
     @staticmethod
     def format_value_block(value: int = 0, address: int = 0):
@@ -541,11 +543,11 @@ class MFRC522:
         address &= 0xFF
 
         return (
-                value.to_bytes(4, "little")
-                + (~value & 0xFFFFFFFF).to_bytes(4, "little")
-                + value.to_bytes(4, "little")
-                + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
-                * 2
+            value.to_bytes(4, "little")
+            + (~value & 0xFFFFFFFF).to_bytes(4, "little")
+            + value.to_bytes(4, "little")
+            + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
+            * 2
         )
 
     @staticmethod
