@@ -217,10 +217,8 @@ class MFRC522:
     def mfrc522_to_card(self, command, send_data):
         back_data = []
         back_len = 0
-        status = self.MI_ERR
         irqEn = 0x00
         waitIRq = 0x00
-        lastBits = None
         n = 0
 
         if command == self.PCD_AUTHENT:
@@ -262,9 +260,9 @@ class MFRC522:
 
                 if command == self.PCD_TRANSCEIVE:
                     n = self.read_mfrc522(self.FIFOLevelReg)
-                    lastBits = self.read_mfrc522(self.ControlReg) & 0x07
-                    if lastBits != 0:
-                        back_len = (n - 1) * 8 + lastBits
+                    last_bits = self.read_mfrc522(self.ControlReg) & 0x07
+                    if last_bits != 0:
+                        back_len = (n - 1) * 8 + last_bits
                     else:
                         back_len = n * 8
 
@@ -400,26 +398,26 @@ class MFRC522:
             self.logger.warning(f"Writing to sector trailer block {block_addr}")
 
         buff = [self.PICC_WRITE, block_addr]
-        (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
+        (status, back_data, back_len) = self.mfrc522_transeive_helper(buff)
         if (
             not (status == self.MI_OK)
-            or not (backLen == 4)
-            or not ((backData[0] & 0x0F) == 0x0A)
+            or not (back_len == 4)
+            or not ((back_data[0] & 0x0F) == 0x0A)
         ):
             status = self.MI_ERR
 
         self.logger.debug(
-            "%s backdata &0x0F == 0x0A %s" % (backLen, backData[0] & 0x0F)
+            "{} backdata &0x0F == 0x0A {}".format(back_len, back_data[0] & 0x0F)
         )
         if status == self.MI_OK:
             buf = []
             buf.extend(write_data)
 
-            (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
+            (status, back_data, back_len) = self.mfrc522_transeive_helper(buf)
             if (
                 not (status == self.MI_OK)
-                or not (backLen == 4)
-                or not ((backData[0] & 0x0F) == 0x0A)
+                or not (back_len == 4)
+                or not ((back_data[0] & 0x0F) == 0x0A)
             ):
                 self.logger.error(f"Error while writing block {block_addr}")
             if status == self.MI_OK:
