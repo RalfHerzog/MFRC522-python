@@ -65,8 +65,8 @@ class MFRC522:
     PICC_RESTORE = 0xC2
     PICC_TRANSFER = 0xB0
     PICC_HALT = 0x50
-    PICC_UNLOCK1 = 0x43
-    PICC_UNLOCK2 = 0x40
+    PICC_UNLOCK1 = 0x40
+    PICC_UNLOCK2 = 0x43
 
     MI_OK = 0
     MI_NOTAGERR = 1
@@ -215,8 +215,8 @@ class MFRC522:
         self.clear_bit_mask(self.TxControlReg, 0x03)
 
     def mfrc522_to_card(self, command, send_data):
-        backData = []
-        backLen = 0
+        back_data = []
+        back_len = 0
         status = self.MI_ERR
         irqEn = 0x00
         waitIRq = 0x00
@@ -264,9 +264,9 @@ class MFRC522:
                     n = self.read_mfrc522(self.FIFOLevelReg)
                     lastBits = self.read_mfrc522(self.ControlReg) & 0x07
                     if lastBits != 0:
-                        backLen = (n - 1) * 8 + lastBits
+                        back_len = (n - 1) * 8 + lastBits
                     else:
-                        backLen = n * 8
+                        back_len = n * 8
 
                     if n == 0:
                         n = 1
@@ -274,27 +274,28 @@ class MFRC522:
                         n = self.MAX_LEN
 
                     for i in range(n):
-                        backData.append(self.read_mfrc522(self.FIFODataReg))
+                        back_data.append(self.read_mfrc522(self.FIFODataReg))
             else:
                 status = self.MI_ERR
         else:
             status = self.MI_TIMEOUT
 
-        return status, backData, backLen
+        self.logger.debug(f"({back_len}) {back_data}")
+
+        return status, back_data, back_len
 
     def mfrc522_request(self, req_mode):
         self.write_mfrc522(self.BitFramingReg, 0x07)
 
         tag_type = [req_mode]
-        status, back_data, back_bits = self.mfrc522_to_card(
+        status, back_data, back_len = self.mfrc522_to_card(
             self.PCD_TRANSCEIVE, tag_type
         )
-        self.logger.debug(f"({back_bits}) {back_data}")
 
-        if (status != self.MI_OK) | (back_bits != 0x10):
+        if (status != self.MI_OK) | (back_len != 0x10):
             status = self.MI_ERR
 
-        return status, back_data, back_bits
+        return status, back_data, back_len
 
     def mfrc522_anticoll(self):
         ser_num = []
