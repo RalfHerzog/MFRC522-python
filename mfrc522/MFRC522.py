@@ -499,7 +499,7 @@ class MFRC522:
                 try:
                     rdata = self.mfrc522_read(i + 3)
                     rdata[:6] = keys[Block(i)].A
-                    rdata[:10] = keys[Block(i)].B
+                    rdata[10:] = keys[Block(i)].B
                     data += rdata
                 except MFRC522Exception:
                     pass
@@ -519,7 +519,7 @@ class MFRC522:
                     try:
                         rdata = self.mfrc522_read(i + 3)
                         rdata[:6] = keys[Block(i)].A
-                        rdata[:10] = keys[Block(i)].B
+                        rdata[10:] = keys[Block(i)].B
                         data += rdata
                     except MFRC522Exception:
                         pass
