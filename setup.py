@@ -1,17 +1,17 @@
-import setuptools
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setuptools.setup(
+setup(
     name="mfrc522",
-    version="0.0.9",
+    version="0.0.10",
     author="zachary822",
     description="A library to integrate the MFRC522 RFID readers with the Raspberry Pi",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/zachary822/MFRC522-python",
-    packages=setuptools.find_packages(),
+    packages=find_packages(exclude=["scripts", "tests"]),
     install_requires=["RPi.GPIO", "spidev"],
     classifiers=[
         "Development Status :: 3 - Alpha",
