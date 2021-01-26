@@ -33,7 +33,7 @@ class SimpleMFRC522:
                 return hid
 
     def read_id_no_block(self):
-        (status, TagType) = self.reader.mfrc522_request(self.reader.PICC_REQIDL)
+        status = self.reader.mfrc522_request(self.reader.PICC_REQIDL)[0]
         if status != self.reader.MI_OK:
             return None
         (status, uid) = self.reader.mfrc522_anticoll()
@@ -42,7 +42,7 @@ class SimpleMFRC522:
         return self.uid_to_hex(uid)
 
     def read_no_block(self):
-        (status, TagType) = self.reader.mfrc522_request(self.reader.PICC_REQIDL)
+        status = self.reader.mfrc522_request(self.reader.PICC_REQIDL)[0]
         if status != self.reader.MI_OK:
             return None, None
         (status, uid) = self.reader.mfrc522_anticoll()
@@ -70,7 +70,7 @@ class SimpleMFRC522:
                 return hid, text_in
 
     def write_no_block(self, text):
-        (status, TagType) = self.reader.mfrc522_request(self.reader.PICC_REQIDL)
+        status = self.reader.mfrc522_request(self.reader.PICC_REQIDL)[0]
         if status != self.reader.MI_OK:
             return None, None
         (status, uid) = self.reader.mfrc522_anticoll()
@@ -81,12 +81,12 @@ class SimpleMFRC522:
         if status == self.reader.MI_OK:
             data = bytearray(text.ljust(len(self.BLOCK_ADDRS) * 16).encode())
             for i, block_num in enumerate(self.BLOCK_ADDRS):
-                self.reader.mfrc522_write(block_num, data[(i * 16): (i + 1) * 16])
+                self.reader.mfrc522_write(block_num, data[(i * 16) : (i + 1) * 16])
         self.reader.mfrc522_stop_crypto1()
         return self.uid_to_hex(uid), text[0 : (len(self.BLOCK_ADDRS) * 16)]
 
     def dump_no_block(self):
-        (status, TagType) = self.reader.mfrc522_request(self.reader.PICC_REQIDL)
+        status = self.reader.mfrc522_request(self.reader.PICC_REQIDL)[0]
         if status != self.reader.MI_OK:
             return None, None
         (status, uid) = self.reader.mfrc522_anticoll()

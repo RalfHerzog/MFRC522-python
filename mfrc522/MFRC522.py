@@ -286,14 +286,15 @@ class MFRC522:
         self.write_mfrc522(self.BitFramingReg, 0x07)
 
         tag_type = [req_mode]
-        (status, backData, backBits) = self.mfrc522_to_card(
+        status, back_data, back_bits = self.mfrc522_to_card(
             self.PCD_TRANSCEIVE, tag_type
         )
+        self.logger.debug(f"({back_bits}) {back_data}")
 
-        if (status != self.MI_OK) | (backBits != 0x10):
+        if (status != self.MI_OK) | (back_bits != 0x10):
             status = self.MI_ERR
 
-        return status, backBits
+        return status, back_data, back_bits
 
     def mfrc522_anticoll(self):
         ser_num = []
