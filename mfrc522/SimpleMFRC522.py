@@ -2,13 +2,14 @@
 
 from . import MFRC522
 from .exceptions import MFRC522Exception
+from .utils import MifareKeys, Block
 
 
 class SimpleMFRC522:
-    KEY = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    KEY = MifareKeys.fill_blank()
     BLOCK_ADDRS = [8, 9, 10]
 
-    def __init__(self, key=None):
+    def __init__(self, key: MifareKeys = None):
         self.reader = MFRC522()
 
         if key is not None:
@@ -49,7 +50,9 @@ class SimpleMFRC522:
         if status != self.reader.MI_OK:
             return None, None
         self.reader.mfrc522_select_tag(uid)
-        status = self.reader.mfrc522_auth(self.reader.PICC_AUTHENT1A, 11, self.KEY, uid)
+        status = self.reader.mfrc522_auth(
+            self.reader.PICC_AUTHENT1A, 11, self.KEY[11, "A"], uid
+        )
         data = []
         text_read = ""
         if status == self.reader.MI_OK:
@@ -77,7 +80,9 @@ class SimpleMFRC522:
         if status != self.reader.MI_OK:
             return None, None
         self.reader.mfrc522_select_tag(uid)
-        status = self.reader.mfrc522_auth(self.reader.PICC_AUTHENT1A, 11, self.KEY, uid)
+        status = self.reader.mfrc522_auth(
+            self.reader.PICC_AUTHENT1A, 11, self.KEY[Block(11)], uid
+        )
         if status == self.reader.MI_OK:
             data = bytearray(text.ljust(len(self.BLOCK_ADDRS) * 16).encode())
             for i, block_num in enumerate(self.BLOCK_ADDRS):
@@ -93,7 +98,7 @@ class SimpleMFRC522:
         if status != self.reader.MI_OK:
             return None, None
         self.reader.mfrc522_select_tag(uid)
-        data = self.reader.mfrc522_dump_classic1k([self.KEY] * 32, uid)
+        data = self.reader.mfrc522_dump_classic1k(self.KEY, uid)
         self.reader.mfrc522_stop_crypto1()
         assert len(data) <= 1024
         return self.uid_to_hex(uid), data

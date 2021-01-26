@@ -23,6 +23,7 @@
 import logging
 from functools import reduce
 from operator import xor
+from .utils import Block, MifareKeys
 
 try:
     import RPi.GPIO as GPIO
@@ -30,12 +31,7 @@ try:
 except ImportError:
     import sys
 
-    if sys.platform != "linux":
-        import unittest.mock as mock
-
-        GPIO = mock.Mock()
-        spidev = mock.Mock()
-    else:
+    if sys.platform == "linux":
         raise
 
 from .exceptions import MFRC522Exception
@@ -349,13 +345,13 @@ class MFRC522:
         else:
             return 0
 
-    def mfrc522_auth(self, auth_mode, block_addr, sectorkey, ser_num):
+    def mfrc522_auth(self, auth_mode, block_addr, sector_key, ser_num):
         # First byte should be the authMode (A or B)
         # Second byte is the trailerBlock (usually 7)
         buff = [auth_mode, block_addr]
 
         # Now we need to append the authKey which usually is 6 bytes of 0xFF
-        buff += sectorkey
+        buff += sector_key
 
         # Next we append the first 4 bytes of the UID
         buff += ser_num[:4]
@@ -488,28 +484,31 @@ class MFRC522:
         buff += crc
         return self.mfrc522_to_card(self.PCD_TRANSCEIVE, buff)
 
-    def mfrc522_dump_classic1k(self, keys, uid):
+    def mfrc522_dump_classic1k(self, keys: MifareKeys, uid):
         data = []
-        for i in range(64):
-            key_idx = i // 4
-            status = self.mfrc522_auth(self.PICC_AUTHENT1A, i, keys[key_idx], uid)
+        for i in range(0, 64, 4):
+            status = self.mfrc522_auth(self.PICC_AUTHENT1A, i, keys[Block(i)].A, uid)
             # Check if authenticated
             if status == self.MI_OK:
-                try:
-                    data += self.mfrc522_read(i)
-                except MFRC522Exception:
-                    pass
+                for j in range(4):
+                    try:
+                        data += self.mfrc522_read(i + j)
+                    except MFRC522Exception:
+                        pass
             else:
+                self.logger.error(f"sector {i // 4} A authentication error ")
                 status = self.mfrc522_auth(
-                    self.PICC_AUTHENT1B, i, keys[key_idx + 1], uid
+                    self.PICC_AUTHENT1B, i, keys[Block(i)].B, uid
                 )
                 # Check if authenticated
                 if status == self.MI_OK:
-                    try:
-                        data += self.mfrc522_read(i)
-                    except MFRC522Exception:
-                        pass
-                self.logger.error("Authentication error")
+                    for j in range(4):
+                        try:
+                            data += self.mfrc522_read(i + j)
+                        except MFRC522Exception:
+                            pass
+                else:
+                    self.logger.error(f"sector {i // 4} B authentication error ")
 
         return data
 
