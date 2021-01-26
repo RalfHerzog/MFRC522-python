@@ -490,11 +490,19 @@ class MFRC522:
             status = self.mfrc522_auth(self.PICC_AUTHENT1A, i, keys[Block(i)].A, uid)
             # Check if authenticated
             if status == self.MI_OK:
-                for j in range(4):
+                for j in range(3):
                     try:
                         data += self.mfrc522_read(i + j)
                     except MFRC522Exception:
                         pass
+
+                try:
+                    rdata = self.mfrc522_read(i + 3)
+                    rdata[:6] = keys[Block(i)].A
+                    rdata[:10] = keys[Block(i)].B
+                    data += rdata
+                except MFRC522Exception:
+                    pass
             else:
                 self.logger.error(f"sector {i // 4} A authentication error ")
                 status = self.mfrc522_auth(
@@ -502,11 +510,19 @@ class MFRC522:
                 )
                 # Check if authenticated
                 if status == self.MI_OK:
-                    for j in range(4):
+                    for j in range(3):
                         try:
                             data += self.mfrc522_read(i + j)
                         except MFRC522Exception:
                             pass
+
+                    try:
+                        rdata = self.mfrc522_read(i + 3)
+                        rdata[:6] = keys[Block(i)].A
+                        rdata[:10] = keys[Block(i)].B
+                        data += rdata
+                    except MFRC522Exception:
+                        pass
                 else:
                     self.logger.error(f"sector {i // 4} B authentication error ")
 
