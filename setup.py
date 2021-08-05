@@ -17,11 +17,8 @@ setup(
         'spidev; platform_system=="linux"',
     ],
     classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "programming language :: python :: 3",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         "Operating System :: POSIX :: Linux",
         "Topic :: System :: Hardware",
     ],
