@@ -338,10 +338,10 @@ class MFRC522:
         buff += ser_num[:4]
 
         # Now we start the authentication itself
-        (status, backData, backLen) = self.mfrc522_to_card(self.PCD_AUTHENT, buff)
+        status, backData, backLen = self.mfrc522_to_card(self.PCD_AUTHENT, buff)
 
         # Check if an error occurred
-        if not (status == self.MI_OK):
+        if status != self.MI_OK:
             self.logger.error("AUTH ERROR!!")
         if not (self.read_mfrc522(self.Status2Reg) & 0x08) != 0:
             self.logger.error("AUTH ERROR(status2reg & 0x08) != 0")
