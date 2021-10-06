@@ -5,8 +5,8 @@ from .exceptions import MFRC522Exception
 
 
 class SimpleMFRC522:
-    def __init__(self, pin_rst, key=None, block_addresses=None):
-        self.reader = MFRC522(pin_rst)
+    def __init__(self, reset_gpio, key=None, block_addresses=None):
+        self.reader = MFRC522(reset_gpio)
 
         self.key = key or [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
         # self.block_addresses = block_addresses or [8, 9, 10]

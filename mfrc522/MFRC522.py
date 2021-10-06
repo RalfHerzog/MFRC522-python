@@ -145,15 +145,15 @@ class MFRC522:
 
     def __init__(
             self,
-            pin_rst,
+            reset_gpio,
             channel=0,
             baud=1000000,
             debug_level="WARNING",
     ):
         self.pi = pigpio.pi()
         self.spi = self.pi.spi_open(channel, baud, pigpio.SPI_MODE_3)
-        self.pi.set_mode(pin_rst, pigpio.OUTPUT)
-        self.pi.write(pin_rst, pigpio.HIGH)
+        self.pi.set_mode(reset_gpio, pigpio.OUTPUT)
+        self.pi.write(reset_gpio, pigpio.HIGH)
 
         self.logger = logging.getLogger("mfrc522Logger")
         self.logger.addHandler(logging.StreamHandler())
