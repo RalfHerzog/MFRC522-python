@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8 -*-
 #
 #    Copyright 2014,2018 Mario Gomez <mario.gomez@teubi.co>
@@ -20,21 +20,18 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with MFRC522-Python.  If not, see <http://www.gnu.org/licenses/>.
 #
+import sys
 import logging
 from functools import reduce
 from operator import xor
 
 try:
-    import RPi.GPIO as GPIO
-    import spidev
+    import pigpio
 except ImportError:
-    import sys
-
     if sys.platform != "linux":
         import unittest.mock as mock
 
-        GPIO = mock.Mock()
-        spidev = mock.Mock()
+        pigpio = mock.Mock()
     else:
         raise
 
@@ -143,43 +140,27 @@ class MFRC522:
 
     serNum = []
 
+    def __enter__(self):
+        return self
+
     def __init__(
-        self,
-        bus=0,
-        device=0,
-        spd=1000000,
-        pin_mode=10,
-        pin_rst=-1,
-        debug_level="WARNING",
+            self,
+            pin_rst,
+            channel=0,
+            baud=1000000,
+            debug_level="WARNING",
     ):
-        self.spi = spidev.SpiDev()
-        self.spi.open(bus, device)
-        self.spi.max_speed_hz = spd
+        self.pi = pigpio.pi()
+        self.spi = self.pi.spi_open(channel, baud, pigpio.SPI_MODE_3)
+        self.pi.set_mode(pin_rst, pigpio.OUTPUT)
+        self.pi.write(pin_rst, pigpio.HIGH)
 
         self.logger = logging.getLogger("mfrc522Logger")
         self.logger.addHandler(logging.StreamHandler())
         level = logging.getLevelName(debug_level)
         self.logger.setLevel(level)
 
-        gpio_mode = GPIO.getmode()
-
-        if gpio_mode is None:
-            GPIO.setmode(pin_mode)
-        else:
-            pin_mode = gpio_mode
-
-        if pin_rst == -1:
-            if pin_mode == 11:
-                pin_rst = 15
-            else:
-                pin_rst = 22
-
-        GPIO.setup(pin_rst, GPIO.OUT)
-        GPIO.output(pin_rst, 1)
         self.mfrc522_init()
-
-    def __enter__(self):
-        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_mfrc522()
@@ -188,15 +169,14 @@ class MFRC522:
         self.write_mfrc522(self.CommandReg, self.PCD_RESETPHASE)
 
     def write_mfrc522(self, addr, val):
-        val = self.spi.xfer2([(addr << 1) & 0x7E, val])
+        _count, _rx_data = self.pi.spi_xfer(self.spi, [(addr << 1) & 0x7E, val])
 
     def read_mfrc522(self, addr):
-        val = self.spi.xfer2([((addr << 1) & 0x7E) | 0x80, 0])
-        return val[1]
+        count, rx_data = self.pi.spi_xfer(self.spi, [((addr << 1) & 0x7E) | 0x80, 0])
+        return rx_data[1]
 
     def close_mfrc522(self):
-        self.spi.close()
-        GPIO.cleanup()
+        self.pi.spi_close(self.spi)
 
     def set_bit_mask(self, reg, mask):
         tmp = self.read_mfrc522(reg)
@@ -215,22 +195,19 @@ class MFRC522:
         self.clear_bit_mask(self.TxControlReg, 0x03)
 
     def mfrc522_to_card(self, command, send_data):
-        backData = []
-        backLen = 0
-        status = self.MI_ERR
-        irqEn = 0x00
-        waitIRq = 0x00
-        lastBits = None
-        n = 0
+        back_data = []
+        back_len = 0
+        irq_en = 0x00
+        wait_i_rq = 0x00
 
         if command == self.PCD_AUTHENT:
-            irqEn = 0x12
-            waitIRq = 0x10
+            irq_en = 0x12
+            wait_i_rq = 0x10
         if command == self.PCD_TRANSCEIVE:
-            irqEn = 0x77
-            waitIRq = 0x30
+            irq_en = 0x77
+            wait_i_rq = 0x30
 
-        self.write_mfrc522(self.CommIEnReg, irqEn | 0x80)
+        self.write_mfrc522(self.CommIEnReg, irq_en | 0x80)
         self.clear_bit_mask(self.CommIrqReg, 0x80)
         self.set_bit_mask(self.FIFOLevelReg, 0x80)
 
@@ -244,11 +221,11 @@ class MFRC522:
         if command == self.PCD_TRANSCEIVE:
             self.set_bit_mask(self.BitFramingReg, 0x80)
 
-        i = 2000
+        i = 200
         while True:
             n = self.read_mfrc522(self.CommIrqReg)
             i -= 1
-            if ~((i != 0) and ~(n & 0x01) and ~(n & waitIRq)):
+            if ~((i != 0) and ~(n & 0x01) and ~(n & wait_i_rq)):
                 break
 
         self.clear_bit_mask(self.BitFramingReg, 0x80)
@@ -257,16 +234,16 @@ class MFRC522:
             if (self.read_mfrc522(self.ErrorReg) & 0x1B) == 0x00:
                 status = self.MI_OK
 
-                if n & irqEn & 0x01:
+                if n & irq_en & 0x01:
                     status = self.MI_NOTAGERR
 
                 if command == self.PCD_TRANSCEIVE:
                     n = self.read_mfrc522(self.FIFOLevelReg)
-                    lastBits = self.read_mfrc522(self.ControlReg) & 0x07
-                    if lastBits != 0:
-                        backLen = (n - 1) * 8 + lastBits
+                    last_bits = self.read_mfrc522(self.ControlReg) & 0x07
+                    if last_bits != 0:
+                        back_len = (n - 1) * 8 + last_bits
                     else:
-                        backLen = n * 8
+                        back_len = n * 8
 
                     if n == 0:
                         n = 1
@@ -274,13 +251,13 @@ class MFRC522:
                         n = self.MAX_LEN
 
                     for i in range(n):
-                        backData.append(self.read_mfrc522(self.FIFODataReg))
+                        back_data.append(self.read_mfrc522(self.FIFODataReg))
             else:
                 status = self.MI_ERR
         else:
             status = self.MI_TIMEOUT
 
-        return status, backData, backLen
+        return status, back_data, back_len
 
     def mfrc522_request(self, req_mode):
         self.write_mfrc522(self.BitFramingReg, 0x07)
@@ -400,9 +377,9 @@ class MFRC522:
         buff = [self.PICC_WRITE, block_addr]
         (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
         if (
-            not (status == self.MI_OK)
-            or not (backLen == 4)
-            or not ((backData[0] & 0x0F) == 0x0A)
+                not (status == self.MI_OK)
+                or not (backLen == 4)
+                or not ((backData[0] & 0x0F) == 0x0A)
         ):
             status = self.MI_ERR
 
@@ -415,9 +392,9 @@ class MFRC522:
 
             (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
             if (
-                not (status == self.MI_OK)
-                or not (backLen == 4)
-                or not ((backData[0] & 0x0F) == 0x0A)
+                    not (status == self.MI_OK)
+                    or not (backLen == 4)
+                    or not ((backData[0] & 0x0F) == 0x0A)
             ):
                 self.logger.error(f"Error while writing block {block_addr}")
             if status == self.MI_OK:
@@ -427,9 +404,9 @@ class MFRC522:
         buff = [self.PICC_DECREMENT, block_addr]
         (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
         if (
-            not (status == self.MI_OK)
-            or not (backLen == 4)
-            or not ((backData[0] & 0x0F) == 0x0A)
+                not (status == self.MI_OK)
+                or not (backLen == 4)
+                or not ((backData[0] & 0x0F) == 0x0A)
         ):
             status = self.MI_ERR
 
@@ -440,9 +417,9 @@ class MFRC522:
             buf = self.value_to_bytes(delta)
             (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
             if (
-                not (status == self.MI_OK or status == self.MI_TIMEOUT)
-                or not (backLen == 4)
-                or not ((backData[0] & 0x0F) == 0x0A)
+                    not (status == self.MI_OK or status == self.MI_TIMEOUT)
+                    or not (backLen == 4)
+                    or not ((backData[0] & 0x0F) == 0x0A)
             ):
                 self.logger.error("Error while writing")
             if status == self.MI_OK:
@@ -452,9 +429,9 @@ class MFRC522:
         buff = [self.PICC_INCREMENT, block_addr]
         (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
         if (
-            not (status == self.MI_OK)
-            or not (backLen == 4)
-            or not ((backData[0] & 0x0F) == 0x0A)
+                not (status == self.MI_OK)
+                or not (backLen == 4)
+                or not ((backData[0] & 0x0F) == 0x0A)
         ):
             status = self.MI_ERR
 
@@ -465,9 +442,9 @@ class MFRC522:
             buf = self.value_to_bytes(delta)
             (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
             if (
-                not (status == self.MI_OK or status == self.MI_TIMEOUT)
-                or not (backLen == 4)
-                or not ((backData[0] & 0x0F) == 0x0A)
+                    not (status == self.MI_OK or status == self.MI_TIMEOUT)
+                    or not (backLen == 4)
+                    or not ((backData[0] & 0x0F) == 0x0A)
             ):
                 self.logger.error("Error while writing")
             if status == self.MI_OK:
@@ -477,9 +454,9 @@ class MFRC522:
         buff = [self.PICC_TRANSFER, block_addr]
         (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
         if (
-            not (status == self.MI_OK)
-            or not (backLen == 4)
-            or not ((backData[0] & 0x0F) == 0x0A)
+                not (status == self.MI_OK)
+                or not (backLen == 4)
+                or not ((backData[0] & 0x0F) == 0x0A)
         ):
             self.logger.error("Error while transfer")
 
@@ -532,10 +509,10 @@ class MFRC522:
     @staticmethod
     def check_value_block(block: bytes):
         return (
-            int.from_bytes(block[0:4], "little")
-            == ~int.from_bytes(block[4:8], "little") & 0xFFFFFFFF
-            == int.from_bytes(block[8:12], "little")
-        ) and (block[12] == block[14] == ~block[13] & 0xFF == ~block[15] & 0xFF)
+                       int.from_bytes(block[0:4], "little")
+                       == ~int.from_bytes(block[4:8], "little") & 0xFFFFFFFF
+                       == int.from_bytes(block[8:12], "little")
+               ) and (block[12] == block[14] == ~block[13] & 0xFF == ~block[15] & 0xFF)
 
     @staticmethod
     def format_value_block(value: int = 0, address: int = 0):
@@ -543,11 +520,11 @@ class MFRC522:
         address &= 0xFF
 
         return (
-            value.to_bytes(4, "little")
-            + (~value & 0xFFFFFFFF).to_bytes(4, "little")
-            + value.to_bytes(4, "little")
-            + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
-            * 2
+                value.to_bytes(4, "little")
+                + (~value & 0xFFFFFFFF).to_bytes(4, "little")
+                + value.to_bytes(4, "little")
+                + (address.to_bytes(1, "little") + (~address & 0xFF).to_bytes(1, "little"))
+                * 2
         )
 
     @staticmethod

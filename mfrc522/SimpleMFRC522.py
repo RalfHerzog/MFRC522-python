@@ -8,8 +8,8 @@ class SimpleMFRC522:
     KEY = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     BLOCK_ADDRS = [8, 9, 10]
 
-    def __init__(self, key=None):
-        self.reader = MFRC522()
+    def __init__(self, pin_rst, key=None):
+        self.reader = MFRC522(pin_rst)
 
         if key is not None:
             self.KEY = key
@@ -103,6 +103,9 @@ class SimpleMFRC522:
             hid, data = self.dump_no_block()
             if hid:
                 return hid, data
+
+    def close(self):
+        self.reader.close_mfrc522()
 
     @staticmethod
     def uid_to_hex(uid):
