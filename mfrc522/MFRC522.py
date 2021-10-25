@@ -152,8 +152,10 @@ class MFRC522:
     ):
         self.pi = pigpio.pi()
         self.spi = self.pi.spi_open(channel, baud, pigpio.SPI_MODE_3)
-        self.pi.set_mode(reset_gpio, pigpio.OUTPUT)
-        self.pi.write(reset_gpio, pigpio.HIGH)
+
+        self.reset_gpio = reset_gpio
+        self.pi.set_mode(self.reset_gpio, pigpio.OUTPUT)
+        self.pi.write(self.reset_gpio, pigpio.HIGH)
 
         self.logger = logging.getLogger("mfrc522Logger")
         self.logger.addHandler(logging.StreamHandler())
@@ -164,6 +166,7 @@ class MFRC522:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_mfrc522()
+        self.pi.write(self.reset_gpio, pigpio.LOW)
 
     def mfrc522_reset(self):
         self.write_mfrc522(self.CommandReg, self.PCD_RESETPHASE)
@@ -177,6 +180,7 @@ class MFRC522:
 
     def close_mfrc522(self):
         self.pi.spi_close(self.spi)
+        self.pi.stop()
 
     def set_bit_mask(self, reg, mask):
         tmp = self.read_mfrc522(reg)
@@ -221,7 +225,7 @@ class MFRC522:
         if command == self.PCD_TRANSCEIVE:
             self.set_bit_mask(self.BitFramingReg, 0x80)
 
-        i = 200
+        i = 20
         while True:
             n = self.read_mfrc522(self.CommIrqReg)
             i -= 1
@@ -354,7 +358,7 @@ class MFRC522:
 
     def mfrc522_read(self, block_addr):
         buff = [self.PICC_READ, block_addr]
-        (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
+        status, backData, backLen = self.mfrc522_transeive_helper(buff)
         if not (status == self.MI_OK):
             self.logger.error("Error while reading!")
 
@@ -375,7 +379,7 @@ class MFRC522:
             self.logger.warning(f"Writing to sector trailer block {block_addr}")
 
         buff = [self.PICC_WRITE, block_addr]
-        (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
+        status, backData, backLen = self.mfrc522_transeive_helper(buff)
         if (
                 not (status == self.MI_OK)
                 or not (backLen == 4)
@@ -390,7 +394,7 @@ class MFRC522:
             buf = []
             buf.extend(write_data)
 
-            (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
+            status, backData, backLen = self.mfrc522_transeive_helper(buf)
             if (
                     not (status == self.MI_OK)
                     or not (backLen == 4)
@@ -402,7 +406,7 @@ class MFRC522:
 
     def mfrc522_decrement(self, block_addr, delta):
         buff = [self.PICC_DECREMENT, block_addr]
-        (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
+        status, backData, backLen = self.mfrc522_transeive_helper(buff)
         if (
                 not (status == self.MI_OK)
                 or not (backLen == 4)
@@ -415,7 +419,7 @@ class MFRC522:
         )
         if status == self.MI_OK:
             buf = self.value_to_bytes(delta)
-            (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
+            status, backData, backLen = self.mfrc522_transeive_helper(buf)
             if (
                     not (status == self.MI_OK or status == self.MI_TIMEOUT)
                     or not (backLen == 4)
@@ -427,7 +431,7 @@ class MFRC522:
 
     def mfrc522_increment(self, block_addr, delta):
         buff = [self.PICC_INCREMENT, block_addr]
-        (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
+        status, backData, backLen = self.mfrc522_transeive_helper(buff)
         if (
                 not (status == self.MI_OK)
                 or not (backLen == 4)
@@ -440,7 +444,7 @@ class MFRC522:
         )
         if status == self.MI_OK:
             buf = self.value_to_bytes(delta)
-            (status, backData, backLen) = self.mfrc522_transeive_helper(buf)
+            status, backData, backLen = self.mfrc522_transeive_helper(buf)
             if (
                     not (status == self.MI_OK or status == self.MI_TIMEOUT)
                     or not (backLen == 4)
@@ -452,7 +456,7 @@ class MFRC522:
 
     def mfrc522_transfer(self, block_addr):
         buff = [self.PICC_TRANSFER, block_addr]
-        (status, backData, backLen) = self.mfrc522_transeive_helper(buff)
+        status, backData, backLen = self.mfrc522_transeive_helper(buff)
         if (
                 not (status == self.MI_OK)
                 or not (backLen == 4)

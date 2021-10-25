@@ -105,6 +105,7 @@ class SimpleMFRC522:
                 return hid, data
 
     def close(self):
+        self.reader.antenna_off()
         self.reader.close_mfrc522()
 
     @staticmethod
